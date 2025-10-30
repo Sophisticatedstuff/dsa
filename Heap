@@ -1,0 +1,152 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <limits.h>
+
+// Structure for linked list node
+struct Node {
+    int data;
+    struct Node* next;
+};
+
+// Structure for heap node (stores node and list index)
+struct HeapNode {
+    struct Node* node;
+    int listIndex;
+};
+
+// Function to create a new linked list node
+struct Node* newNode(int data) {
+    struct Node* temp = (struct Node*)malloc(sizeof(struct Node));
+    temp->data = data;
+    temp->next = NULL;
+    return temp;
+}
+
+// Swap two heap nodes
+void swap(struct HeapNode* a, struct HeapNode* b) {
+    struct HeapNode temp = *a;
+    *a = *b;
+    *b = temp;
+}
+
+// Heapify function (min-heap)
+void heapify(struct HeapNode heap[], int size, int i) {
+    int smallest = i;
+    int left = 2 * i + 1;
+    int right = 2 * i + 2;
+
+    if (left < size && heap[left].node->data < heap[smallest].node->data)
+        smallest = left;
+    if (right < size && heap[right].node->data < heap[smallest].node->data)
+        smallest = right;
+
+    if (smallest != i) {
+        swap(&heap[i], &heap[smallest]);
+        heapify(heap, size, smallest);
+    }
+}
+
+// Build min-heap
+void buildMinHeap(struct HeapNode heap[], int size) {
+    for (int i = size / 2 - 1; i >= 0; i--)
+        heapify(heap, size, i);
+}
+
+// Extract minimum node from heap
+struct HeapNode extractMin(struct HeapNode heap[], int* size) {
+    struct HeapNode root = heap[0];
+    if (*size > 1)
+        heap[0] = heap[*size - 1];
+    (*size)--;
+    heapify(heap, *size, 0);
+    return root;
+}
+
+// Insert new node into heap
+void insertHeap(struct HeapNode heap[], int* size, struct HeapNode newNode) {
+    heap[*size] = newNode;
+    (*size)++;
+    int i = *size - 1;
+    while (i > 0 && heap[(i - 1) / 2].node->data > heap[i].node->data) {
+        swap(&heap[i], &heap[(i - 1) / 2]);
+        i = (i - 1) / 2;
+    }
+}
+
+// Merge K sorted linked lists
+struct Node* mergeKSortedLists(struct Node* arr[], int k) {
+    struct HeapNode* heap = (struct HeapNode*)malloc(k * sizeof(struct HeapNode));
+    int heapSize = 0;
+
+    // Initialize heap with first node of each list
+    for (int i = 0; i < k; i++) {
+        if (arr[i] != NULL) {
+            heap[heapSize].node = arr[i];
+            heap[heapSize].listIndex = i;
+            heapSize++;
+        }
+    }
+
+    buildMinHeap(heap, heapSize);
+
+    struct Node* result = NULL;
+    struct Node* last = NULL;
+
+    // Extract min and add next node from same list
+    while (heapSize > 0) {
+        struct HeapNode root = extractMin(heap, &heapSize);
+        if (result == NULL) {
+            result = root.node;
+            last = result;
+        } else {
+            last->next = root.node;
+            last = last->next;
+        }
+
+        if (root.node->next != NULL) {
+            struct HeapNode nextNode;
+            nextNode.node = root.node->next;
+            nextNode.listIndex = root.listIndex;
+            insertHeap(heap, &heapSize, nextNode);
+        }
+    }
+
+    free(heap);
+    return result;
+}
+
+// Print a linked list
+void printList(struct Node* node) {
+    while (node != NULL) {
+        printf("%d ", node->data);
+        node = node->next;
+    }
+    printf("\n");
+}
+
+// Driver Code
+int main() {
+    int k = 3;
+
+    // Create 3 sorted linked lists
+    struct Node* arr[k];
+
+    arr[0] = newNode(1);
+    arr[0]->next = newNode(4);
+    arr[0]->next->next = newNode(7);
+
+    arr[1] = newNode(2);
+    arr[1]->next = newNode(5);
+    arr[1]->next->next = newNode(8);
+
+    arr[2] = newNode(3);
+    arr[2]->next = newNode(6);
+    arr[2]->next->next = newNode(9);
+
+    struct Node* result = mergeKSortedLists(arr, k);
+
+    printf("Merged Sorted List: ");
+    printList(result);
+
+    return 0;
+}
